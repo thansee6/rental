@@ -1,0 +1,412 @@
+import React, { useState, useEffect } from 'react';
+import { X, Plus, AlertCircle, Sparkles } from 'lucide-react';
+
+const STANDARD_AMENITIES = [
+  'Wifi', 'AC', 'Parking', 'Kitchen', 'Furnished', 'Gym', 'Elevator', 'Security System', 'Laundry', 'Pool'
+];
+
+const PRESET_IMAGES = [
+  { name: 'Modern Apartment Studio', url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80' },
+  { name: 'Cozy Bedroom Flat', url: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=800&q=80' },
+  { name: 'Elegant Living Quarters', url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80' },
+  { name: 'Commercial Office Tower', url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80' },
+  { name: 'Luxury Brick Building', url: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80' }
+];
+
+const PropertyForm = ({ towns, routes, onClose, onSubmit, currentUser }) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    type: 'Room',
+    price: '',
+    address: '',
+    town: '',
+    route: '',
+    nearStaircase: false,
+    amenities: [],
+    imageUrl: '',
+    contactName: currentUser ? currentUser.email.split('@')[0].toUpperCase() : '',
+    contactPhone: '',
+    contactEmail: currentUser ? currentUser.email : ''
+  });
+
+  const [filteredRoutes, setFilteredRoutes] = useState([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [customImage, setCustomImage] = useState(false);
+
+  // Update filtered routes when selected town changes
+  useEffect(() => {
+    if (formData.town) {
+      const filtered = routes.filter(r => {
+        // Handle both populated objects and ID strings
+        const routeTownId = typeof r.town === 'object' && r.town !== null ? r.town._id : r.town;
+        return routeTownId === formData.town;
+      });
+      setFilteredRoutes(filtered);
+    } else {
+      setFilteredRoutes([]);
+    }
+  }, [formData.town, routes]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleAmenityChange = (amenity) => {
+    setFormData(prev => {
+      const current = [...prev.amenities];
+      if (current.includes(amenity)) {
+        return { ...prev, amenities: current.filter(a => a !== amenity) };
+      } else {
+        return { ...prev, amenities: [...current, amenity] };
+      }
+    });
+  };
+
+  const selectPresetImage = (url) => {
+    setFormData(prev => ({ ...prev, imageUrl: url }));
+    setCustomImage(false);
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Validations
+    if (!formData.title.trim()) return setError('Title is required');
+    if (!formData.description.trim()) return setError('Description is required');
+    if (!formData.price || Number(formData.price) <= 0) return setError('Price must be a valid positive number');
+    if (!formData.address.trim()) return setError('Address is required');
+    if (!formData.town) return setError('Please select a Town');
+    if (!formData.route) return setError('Please select a Route');
+    if (!formData.contactName.trim()) return setError('Contact Name is required');
+    if (!formData.contactPhone.trim()) return setError('Contact Phone is required');
+    if (!formData.contactEmail.trim()) return setError('Contact Email is required');
+
+    setLoading(true);
+    try {
+      // Pick a default image if none chosen
+      let finalImg = formData.imageUrl;
+      if (!finalImg) {
+        const randIndex = Math.floor(Math.random() * PRESET_IMAGES.length);
+        finalImg = PRESET_IMAGES[randIndex].url;
+      }
+
+      await onSubmit({
+        ...formData,
+        imageUrl: finalImg
+      });
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Failed to submit property listing');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content" style={{ maxWidth: '750px' }}>
+        <button className="modal-close-btn" onClick={onClose}>
+          <X size={18} />
+        </button>
+
+        <div className="form-header">
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Sparkles className="text-gradient" /> List Your Rental Property
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+            Create a premium room or building listing in your selected town.
+          </p>
+        </div>
+
+        <form onSubmit={handleFormSubmit} className="form-body">
+          {error && (
+            <div className="btn-danger" style={{ padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', cursor: 'default' }}>
+              <AlertCircle size={16} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Title & Type */}
+          <div className="form-row">
+            <div className="form-group">
+              <label>Property Title *</label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="e.g. Modern Double Bed Apartment Room"
+                className="form-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Listing Type *</label>
+              <select
+                name="type"
+                value={formData.type}
+                onChange={(e) => {
+                  handleChange(e);
+                  // Reset staircase when switching type
+                  if (e.target.value !== 'Room') {
+                    setFormData(prev => ({ ...prev, nearStaircase: false }));
+                  }
+                }}
+                className="form-input"
+              >
+                <option value="Room">Single Room / Flat</option>
+                <option value="Building">Full Building / Block</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Town & Route (Dependent Dropdowns) */}
+          <div className="form-row">
+            <div className="form-group">
+              <label>Select Town *</label>
+              <select
+                name="town"
+                value={formData.town}
+                onChange={handleChange}
+                className="form-input"
+                required
+              >
+                <option value="">-- Choose Town --</option>
+                {towns.map(t => (
+                  <option key={t._id} value={t._id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Select Route *</label>
+              <select
+                name="route"
+                value={formData.route}
+                onChange={handleChange}
+                className="form-input"
+                disabled={!formData.town}
+                required
+              >
+                <option value="">
+                  {formData.town ? '-- Choose Route --' : 'Select a Town first'}
+                </option>
+                {filteredRoutes.map(r => (
+                  <option key={r._id} value={r._id}>{r.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Price & Address */}
+          <div className="form-row">
+            <div className="form-group">
+              <label>Monthly Rent ($ USD) *</label>
+              <input
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                placeholder="e.g. 750"
+                className="form-input"
+                min="1"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Exact Address *</label>
+              <input
+                type="text"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="e.g. Apt 4B, 88 Park Avenue"
+                className="form-input"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="form-group">
+            <label>Detailed Description *</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Describe the property, transit convenience, nearby amenities, room dimensions..."
+              className="form-input"
+              style={{ minHeight: '80px', resize: 'vertical' }}
+              required
+            />
+          </div>
+
+          {/* CONDITIONAL FIELD: Near Staircase (Only for Rooms) */}
+          {formData.type === 'Room' && (
+            <div className="form-group" style={{ margin: '1.5rem 0' }}>
+              <label>Staircase Proximity Check</label>
+              <div 
+                className={`checkbox-group ${formData.nearStaircase ? 'checkbox-group-danger' : ''}`}
+                onClick={() => setFormData(prev => ({ ...prev, nearStaircase: !prev.nearStaircase }))}
+              >
+                <input
+                  type="checkbox"
+                  name="nearStaircase"
+                  checked={formData.nearStaircase}
+                  onChange={handleChange}
+                  onClick={(e) => e.stopPropagation()} // Prevent double triggers
+                />
+                <div>
+                  <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>
+                    This room is located near a staircase
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    Selecting this informs potential tenants that the room has fast staircase access (which might increase foot-traffic noise).
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Amenities Selector */}
+          <div className="form-group">
+            <label>Select Key Amenities</label>
+            <div className="amenities-selector">
+              {STANDARD_AMENITIES.map(amenity => {
+                const isChecked = formData.amenities.includes(amenity);
+                return (
+                  <div
+                    key={amenity}
+                    className={`amenity-checkbox ${isChecked ? 'checked' : ''}`}
+                    onClick={() => handleAmenityChange(amenity)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      readOnly
+                      style={{ pointerEvents: 'none', accentColor: 'var(--primary)' }}
+                    />
+                    <span>{amenity}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Image Chooser */}
+          <div className="form-group" style={{ marginTop: '1.5rem' }}>
+            <label>Property Showcase Image</label>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+              {PRESET_IMAGES.map((preset, idx) => (
+                <button
+                  type="button"
+                  key={idx}
+                  onClick={() => selectPresetImage(preset.url)}
+                  className="btn"
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    fontSize: '0.75rem',
+                    border: '1px solid var(--border-color)',
+                    background: formData.imageUrl === preset.url ? 'var(--primary)' : 'var(--bg-tertiary)',
+                    color: formData.imageUrl === preset.url ? '#0b0f19' : 'var(--text-primary)',
+                  }}
+                >
+                  Preset {idx + 1}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomImage(true);
+                  setFormData(prev => ({ ...prev, imageUrl: '' }));
+                }}
+                className="btn"
+                style={{
+                  padding: '0.4rem 0.8rem',
+                  fontSize: '0.75rem',
+                  border: '1px solid var(--border-color)',
+                  background: customImage ? 'var(--primary)' : 'var(--bg-tertiary)',
+                  color: customImage ? '#0b0f19' : 'var(--text-primary)',
+                }}
+              >
+                Custom URL
+              </button>
+            </div>
+            
+            {customImage && (
+              <input
+                type="url"
+                name="imageUrl"
+                value={formData.imageUrl}
+                onChange={handleChange}
+                placeholder="https://example.com/property-image.jpg"
+                className="form-input"
+              />
+            )}
+          </div>
+
+          {/* Contact Details */}
+          <div style={{ marginTop: '1.5rem' }}>
+            <h4 style={{ fontSize: '1rem', color: '#fff', marginBottom: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
+              Host Contact Details
+            </h4>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Contact Name *</label>
+                <input
+                  type="text"
+                  name="contactName"
+                  value={formData.contactName}
+                  onChange={handleChange}
+                  placeholder="e.g. John Doe"
+                  className="form-input"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Phone Number *</label>
+                <input
+                  type="text"
+                  name="contactPhone"
+                  value={formData.contactPhone}
+                  onChange={handleChange}
+                  placeholder="e.g. +1 (555) 123-4567"
+                  className="form-input"
+                  required
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Email Address *</label>
+              <input
+                type="email"
+                name="contactEmail"
+                value={formData.contactEmail}
+                onChange={handleChange}
+                placeholder="e.g. john.doe@email.com"
+                className="form-input"
+                required
+              />
+            </div>
+          </div>
+        </form>
+
+        <div className="form-footer">
+          <button type="button" onClick={onClose} className="btn btn-secondary" disabled={loading}>
+            Cancel
+          </button>
+          <button type="button" onClick={handleFormSubmit} className="btn btn-primary" disabled={loading}>
+            {loading ? 'Submitting...' : 'Post Listing'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PropertyForm;

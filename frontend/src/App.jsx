@@ -18,7 +18,8 @@ import {
   Trash2,
   LogIn,
   LogOut,
-  ShieldAlert
+  ShieldAlert,
+  Heart
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import PropertyCard from './components/PropertyCard';
@@ -41,11 +42,31 @@ function App() {
   const [maxPrice, setMaxPrice] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Client-side Filter & Sort States
+  const [favorites, setFavorites] = useState(() => {
+    const stored = localStorage.getItem('luxeSpace_favorites');
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [sortBy, setSortBy] = useState('newest');
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+
   // UI Status States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
+
+  // Toggle Favorite Handler
+  const handleToggleFavorite = (propertyId, e) => {
+    if (e) e.stopPropagation();
+    setFavorites(prev => {
+      const updated = prev.includes(propertyId)
+        ? prev.filter(id => id !== propertyId)
+        : [...prev, propertyId];
+      localStorage.setItem('luxeSpace_favorites', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   // Role-Based User States
   const [currentUser, setCurrentUser] = useState(() => {
@@ -216,8 +237,10 @@ function App() {
     setSelectedType('');
     setStaircaseFilter('any');
     setMinPrice('');
-    setSelectedRoute('');
+    setMaxPrice('');
     setSearchQuery('');
+    setFavoritesOnly(false);
+    setSortBy('newest');
   };
 
   // Seed / Reset Database to Default Data
@@ -281,6 +304,30 @@ function App() {
       origin: { y: 0.6 }
     });
   };
+
+  // Process properties: apply client-side favorites filter & sorting
+  const processedProperties = [...properties]
+    .filter(p => {
+      if (favoritesOnly) {
+        return favorites.includes(p._id);
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'price-asc') {
+        return a.price - b.price;
+      }
+      if (sortBy === 'price-desc') {
+        return b.price - a.price;
+      }
+      if (sortBy === 'title-asc') {
+        return a.title.localeCompare(b.title);
+      }
+      // default: newest first
+      const dateA = a.createdAt ? new Date(a.createdAt) : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt) : 0;
+      return dateB - dateA;
+    });
 
   // Helper: Get active town details
   const activeTownObj = towns.find(t => t._id === selectedTown);
@@ -384,6 +431,26 @@ function App() {
           
           {/* Sidebar Filter Panel */}
           <aside className="filter-panel">
+            {/* Personal Workspace section */}
+            <div className="filter-section">
+              <h3 className="filter-title">
+                <Heart size={18} className="text-gradient" /> Personal Workspace
+              </h3>
+              <div className="selector-list">
+                <button
+                  className={`selector-item ${favoritesOnly ? 'active' : ''}`}
+                  onClick={() => setFavoritesOnly(!favoritesOnly)}
+                  style={{ width: '100%' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Heart size={14} fill={favoritesOnly ? "currentColor" : "none"} />
+                    <span>Favorites Only</span>
+                  </div>
+                  <span className="badge-count">{favorites.length}</span>
+                </button>
+              </div>
+            </div>
+
             <div className="filter-section">
               <h3 className="filter-title">
                 <MapPin size={18} className="text-gradient" /> Towns
@@ -546,10 +613,27 @@ function App() {
               </div>
             )}
 
-            <div className="listings-header">
-              <h2 style={{ fontSize: '1.4rem' }}>Available Spaces</h2>
-              <div className="listings-count">
-                Found {properties.length} property listings
+            <div className="listings-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.4rem', color: '#fff' }}>Available Spaces</h2>
+                <div className="listings-count">
+                  Found {processedProperties.length} property listings
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Sort by:</span>
+                <select 
+                  className="form-input" 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value)}
+                  style={{ width: 'auto', padding: '0.4rem 2rem 0.4rem 1rem', fontSize: '0.85rem', cursor: 'pointer', height: '36px' }}
+                >
+                  <option value="newest">Newest Listed</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                  <option value="title-asc">Title: A-Z</option>
+                </select>
               </div>
             </div>
 
@@ -568,7 +652,7 @@ function App() {
                   Retry Connection
                 </button>
               </div>
-            ) : properties.length === 0 ? (
+            ) : processedProperties.length === 0 ? (
               <div className="empty-state">
                 <Building2 size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
                 <h3 className="empty-state-title">No Listings Match</h3>
@@ -581,13 +665,15 @@ function App() {
               </div>
             ) : (
               <div className="properties-grid">
-                {properties.map(property => (
+                {processedProperties.map(property => (
                   <PropertyCard
                     key={property._id}
                     property={property}
                     onClick={() => setSelectedProperty(property)}
                     isAdmin={canUserDeleteProperty(property)}
                     onDelete={(e) => handleDeleteProperty(property._id, e)}
+                    isFavorite={favorites.includes(property._id)}
+                    onToggleFavorite={handleToggleFavorite}
                   />
                 ))}
               </div>
@@ -655,6 +741,23 @@ function App() {
                 <span className="route-badge">
                   Route: {selectedProperty.route?.name}
                 </span>
+                
+                <button
+                  className="btn"
+                  onClick={(e) => handleToggleFavorite(selectedProperty._id, e)}
+                  style={{ 
+                    padding: '0.3rem 0.75rem', 
+                    fontSize: '0.75rem', 
+                    height: '26px', 
+                    background: favorites.includes(selectedProperty._id) ? 'var(--accent-rose-bg)' : 'var(--bg-tertiary)',
+                    borderColor: favorites.includes(selectedProperty._id) ? 'rgba(244, 63, 94, 0.3)' : 'var(--border-color)',
+                    color: favorites.includes(selectedProperty._id) ? 'var(--accent-rose)' : 'var(--text-secondary)'
+                  }}
+                  title={favorites.includes(selectedProperty._id) ? "Remove from Saved" : "Save Listing"}
+                >
+                  <Heart size={12} fill={favorites.includes(selectedProperty._id) ? "currentColor" : "none"} />
+                  {favorites.includes(selectedProperty._id) ? 'Saved' : 'Save Property'}
+                </button>
               </div>
               
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>

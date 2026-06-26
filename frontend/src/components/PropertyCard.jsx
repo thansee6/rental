@@ -1,8 +1,9 @@
 import React from 'react';
-import { MapPin, Navigation, Compass, Layers, ArrowUpRight, Trash2 } from 'lucide-react';
+import { MapPin, Navigation, Compass, Layers, ArrowUpRight, Trash2, Heart } from 'lucide-react';
 
-const PropertyCard = ({ property, onClick, isAdmin, onDelete }) => {
+const PropertyCard = ({ property, onClick, isAdmin, onDelete, isFavorite, onToggleFavorite }) => {
   const {
+    _id,
     title,
     type,
     price,
@@ -18,6 +19,7 @@ const PropertyCard = ({ property, onClick, isAdmin, onDelete }) => {
     <div className="property-card" onClick={onClick}>
       <div className="card-img-container">
         <img src={imageUrl} alt={title} className="card-img" loading="lazy" />
+        
         <div className="card-badges">
           {type === 'Room' ? (
             <>
@@ -37,32 +39,31 @@ const PropertyCard = ({ property, onClick, isAdmin, onDelete }) => {
           )}
         </div>
 
-        {isAdmin && (
+        <div className="card-actions" onClick={(e) => e.stopPropagation()}>
           <button 
-            className="btn btn-danger"
+            className={`card-action-btn btn-favorite ${isFavorite ? 'active' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(e);
+              onToggleFavorite(_id, e);
             }}
-            style={{
-              position: 'absolute',
-              top: '1rem',
-              right: '1rem',
-              padding: '0.4rem',
-              borderRadius: '50%',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10,
-              boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
-            }}
-            title="Delete this listing"
+            title={isFavorite ? "Remove from Saved" : "Save Property"}
           >
-            <Trash2 size={14} />
+            <Heart size={15} fill={isFavorite ? "var(--accent-rose)" : "none"} color={isFavorite ? "var(--accent-rose)" : "currentColor"} />
           </button>
-        )}
+
+          {isAdmin && (
+            <button 
+              className="card-action-btn btn-delete"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(e);
+              }}
+              title="Delete this listing"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="card-content">

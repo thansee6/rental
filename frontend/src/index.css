@@ -823,3 +823,59 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.95rem;
   color: var(--text-secondary);
 }
+
+/* Card Actions Container (Favorite & Delete Overlay) */
+.card-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+/* Action Circle Buttons */
+.card-action-btn {
+  background: rgba(11, 15, 25, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.card-action-btn:hover {
+  background: var(--bg-tertiary);
+  transform: scale(1.1) translateY(-1px);
+  border-color: var(--border-hover);
+  color: #fff;
+}
+
+/* Favorite Specific Styling */
+.card-action-btn.btn-favorite.active {
+  background: var(--accent-rose-bg);
+  border-color: rgba(244, 63, 94, 0.4);
+  color: var(--accent-rose);
+  box-shadow: 0 4px 15px rgba(244, 63, 94, 0.2);
+}
+
+.card-action-btn.btn-favorite.active:hover {
+  background: rgba(244, 63, 94, 0.2);
+}
+
+/* Delete Specific Styling */
+.card-action-btn.btn-delete:hover {
+  background: var(--accent-rose);
+  color: white;
+  border-color: var(--accent-rose);
+  box-shadow: 0 4px 15px rgba(244, 63, 94, 0.4);
+}
+

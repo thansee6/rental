@@ -50,6 +50,7 @@ function App() {
   const [sortBy, setSortBy] = useState('newest');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
 
   // UI Status States
   const [loading, setLoading] = useState(true);
@@ -242,6 +243,7 @@ function App() {
     setSearchQuery('');
     setFavoritesOnly(false);
     setSortBy('newest');
+    setSelectedAmenities([]);
   };
 
   // Seed / Reset Database to Default Data
@@ -306,13 +308,17 @@ function App() {
     });
   };
 
-  // Process properties: apply client-side favorites filter & sorting
+  // Process properties: apply client-side favorites filter, amenities filter & sorting
   const processedProperties = [...properties]
     .filter(p => {
       if (favoritesOnly) {
         return favorites.includes(p._id);
       }
       return true;
+    })
+    .filter(p => {
+      if (selectedAmenities.length === 0) return true;
+      return selectedAmenities.every(amenity => p.amenities && p.amenities.includes(amenity));
     })
     .sort((a, b) => {
       if (sortBy === 'price-asc') {
@@ -597,6 +603,35 @@ function App() {
                     onChange={(e) => setMaxPrice(e.target.value)}
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Amenities Filter */}
+            <div className="filter-section">
+              <h3 className="filter-title">
+                <Sparkles size={18} className="text-gradient" /> Amenities
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.40rem' }}>
+                {['Wifi', 'AC', 'Parking', 'Kitchen', 'Furnished', 'Gym', 'Elevator', 'Security System', 'Laundry', 'Pool'].map(amenity => {
+                  const isSelected = selectedAmenities.includes(amenity);
+                  return (
+                    <button
+                      key={amenity}
+                      className={`selector-item ${isSelected ? 'active' : ''}`}
+                      onClick={() => {
+                        setSelectedAmenities(prev =>
+                          prev.includes(amenity)
+                            ? prev.filter(a => a !== amenity)
+                            : [...prev, amenity]
+                        );
+                      }}
+                      style={{ padding: '0.45rem 0.5rem', fontSize: '0.78rem', justifyContent: 'center', textAlign: 'center', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
+                      title={amenity}
+                    >
+                      <span>{amenity}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

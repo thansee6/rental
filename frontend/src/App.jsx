@@ -49,6 +49,7 @@ function App() {
   });
   const [sortBy, setSortBy] = useState('newest');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   // UI Status States
   const [loading, setLoading] = useState(true);
@@ -461,6 +462,7 @@ function App() {
                   onClick={() => handleTownSelect('')}
                 >
                   <span>All Towns</span>
+                  <span className="badge-count">{properties.length}</span>
                 </button>
                 {towns.map(t => (
                   <button
@@ -469,6 +471,7 @@ function App() {
                     onClick={() => handleTownSelect(t._id)}
                   >
                     <span>{t.name}</span>
+                    <span className="badge-count">{getTownPropertyCount(t._id)}</span>
                   </button>
                 ))}
               </div>
@@ -485,6 +488,11 @@ function App() {
                   onClick={() => setSelectedRoute('')}
                 >
                   <span>All Routes</span>
+                  <span className="badge-count">
+                    {selectedTown 
+                      ? properties.filter(p => (p.town?._id === selectedTown || p.town === selectedTown)).length 
+                      : properties.length}
+                  </span>
                 </button>
                 {routes
                   .filter(r => !selectedTown || (typeof r.town === 'object' ? r.town?._id === selectedTown : r.town === selectedTown))
@@ -495,6 +503,7 @@ function App() {
                       onClick={() => setSelectedRoute(r._id)}
                     >
                       <span>{r.name}</span>
+                      <span className="badge-count">{getRoutePropertyCount(r._id)}</span>
                     </button>
                   ))}
               </div>
@@ -757,6 +766,28 @@ function App() {
                 >
                   <Heart size={12} fill={favorites.includes(selectedProperty._id) ? "currentColor" : "none"} />
                   {favorites.includes(selectedProperty._id) ? 'Saved' : 'Save Property'}
+                </button>
+
+                <button
+                  className="btn"
+                  onClick={() => {
+                    const text = `Check out this space on LuxeSpace: "${selectedProperty.title}" located at ${selectedProperty.address} for $${selectedProperty.price.toLocaleString()}/month!`;
+                    navigator.clipboard.writeText(text);
+                    setShareCopied(true);
+                    setTimeout(() => setShareCopied(false), 2000);
+                  }}
+                  style={{ 
+                    padding: '0.3rem 0.75rem', 
+                    fontSize: '0.75rem', 
+                    height: '26px', 
+                    background: shareCopied ? 'var(--primary-glow)' : 'var(--bg-tertiary)',
+                    borderColor: shareCopied ? 'var(--primary)' : 'var(--border-color)',
+                    color: shareCopied ? 'var(--primary)' : 'var(--text-secondary)'
+                  }}
+                  title="Copy Listing Summary to Clipboard"
+                >
+                  <Sparkles size={12} className={shareCopied ? "" : "text-gradient"} />
+                  {shareCopied ? 'Summary Copied!' : 'Copy Summary'}
                 </button>
               </div>
               

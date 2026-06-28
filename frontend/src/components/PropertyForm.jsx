@@ -34,6 +34,12 @@ const PropertyForm = ({ towns, routes, onClose, onSubmit, currentUser }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [customImage, setCustomImage] = useState(false);
+  const [isAddingNewTown, setIsAddingNewTown] = useState(false);
+  const [newTownName, setNewTownName] = useState('');
+  const [newTownDesc, setNewTownDesc] = useState('');
+  const [isAddingNewRoute, setIsAddingNewRoute] = useState(false);
+  const [newRouteName, setNewRouteName] = useState('');
+  const [newRouteDesc, setNewRouteDesc] = useState('');
 
   // Update filtered routes when selected town changes
   useEffect(() => {
@@ -82,14 +88,65 @@ const PropertyForm = ({ towns, routes, onClose, onSubmit, currentUser }) => {
     if (!formData.description.trim()) return setError('Description is required');
     if (!formData.price || Number(formData.price) <= 0) return setError('Price must be a valid positive number');
     if (!formData.address.trim()) return setError('Address is required');
-    if (!formData.town) return setError('Please select a Town');
-    if (!formData.route) return setError('Please select a Route');
+    if (!isAddingNewTown && !formData.town) return setError('Please select a Town');
+    if (!isAddingNewTown && !isAddingNewRoute && !formData.route) return setError('Please select a Route');
+    if (isAddingNewTown) {
+      if (!newTownName.trim() || !newTownDesc.trim()) return setError('New Town name and description are required');
+      if (!newRouteName.trim() || !newRouteDesc.trim()) return setError('New Route name and description are required for the new town');
+    }
+    if (!isAddingNewTown && isAddingNewRoute) {
+      if (!newRouteName.trim() || !newRouteDesc.trim()) return setError('New Route name and description are required');
+    }
     if (!formData.contactName.trim()) return setError('Contact Name is required');
     if (!formData.contactPhone.trim()) return setError('Contact Phone is required');
     if (!formData.contactEmail.trim()) return setError('Contact Email is required');
 
     setLoading(true);
     try {
+      let townId = formData.town;
+      let routeId = formData.route;
+
+      // Handle new town creation
+      if (isAddingNewTown) {
+        const tRes = await fetch('http://localhost:5000/api/towns', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newTownName, description: newTownDesc })
+        });
+        if (!tRes.ok) {
+          const tErr = await tRes.json();
+          throw new Error(tErr.error || 'Failed to create new Town');
+        }
+        const createdTown = await tRes.json();
+        townId = createdTown._id;
+
+        const rRes = await fetch('http://localhost:5000/api/routes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newRouteName, town: townId, description: newRouteDesc })
+        });
+        if (!rRes.ok) {
+          const rErr = await rRes.json();
+          throw new Error(rErr.error || 'Failed to create new Route for custom Town');
+        }
+        const createdRoute = await rRes.json();
+        routeId = createdRoute._id;
+      }
+      // Handle new route to existing town creation
+      else if (isAddingNewRoute) {
+        const rRes = await fetch('http://localhost:5000/api/routes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newRouteName, town: townId, description: newRouteDesc })
+        });
+        if (!rRes.ok) {
+          const rErr = await rRes.json();
+          throw new Error(rErr.error || 'Failed to create custom Route');
+        }
+        const createdRoute = await rRes.json();
+        routeId = createdRoute._id;
+      }
+
       // Pick a default image if none chosen
       let finalImg = formData.imageUrl;
       if (!finalImg) {
@@ -99,6 +156,8 @@ const PropertyForm = ({ towns, routes, onClose, onSubmit, currentUser }) => {
 
       await onSubmit({
         ...formData,
+        town: townId,
+        route: routeId,
         imageUrl: finalImg
       });
     } catch (err) {
@@ -166,42 +225,174 @@ const PropertyForm = ({ towns, routes, onClose, onSubmit, currentUser }) => {
             </div>
           </div>
 
-          {/* Town & Route (Dependent Dropdowns) */}
+          {/* Town & Route (Dependent Dropdowns or Custom Inputs) */}
           <div className="form-row">
-            <div className="form-group">
-              <label>Select Town *</label>
-              <select
-                name="town"
-                value={formData.town}
-                onChange={handleChange}
-                className="form-input"
-                required
-              >
-                <option value="">-- Choose Town --</option>
-                {towns.map(t => (
-                  <option key={t._id} value={t._id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Select Route *</label>
-              <select
-                name="route"
-                value={formData.route}
-                onChange={handleChange}
-                className="form-input"
-                disabled={!formData.town}
-                required
-              >
-                <option value="">
-                  {formData.town ? '-- Choose Route --' : 'Select a Town first'}
-                </option>
-                {filteredRoutes.map(r => (
-                  <option key={r._id} value={r._id}>{r.name}</option>
-                ))}
-              </select>
-            </div>
+            {isAddingNewTown ? (
+              <>
+                <div className="form-group">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <label style={{ marginBottom: 0 }}>New Town Name *</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingNewTown(false);
+                        setIsAddingNewRoute(false);
+                      }}
+                      style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                    >
+                      Select Existing Town
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={newTownName}
+                    onChange={(e) => setNewTownName(e.target.value)}
+                    placeholder="e.g. Uptown"
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>New Town Description *</label>
+                  <input
+                    type="text"
+                    value={newTownDesc}
+                    onChange={(e) => setNewTownDesc(e.target.value)}
+                    placeholder="e.g. Shopping and residential district"
+                    className="form-input"
+                    required
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <label style={{ marginBottom: 0 }}>Select Town *</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingNewTown(true);
+                      setIsAddingNewRoute(true);
+                    }}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                  >
+                    + Add New Town
+                  </button>
+                </div>
+                <select
+                  name="town"
+                  value={formData.town}
+                  onChange={(e) => {
+                    handleChange(e);
+                    setIsAddingNewRoute(false);
+                  }}
+                  className="form-input"
+                  required
+                >
+                  <option value="">-- Choose Town --</option>
+                  {towns.map(t => (
+                    <option key={t._id} value={t._id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {!isAddingNewTown && (
+              isAddingNewRoute ? (
+                <div className="form-group">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <label style={{ marginBottom: 0 }}>New Route Name *</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingNewRoute(false)}
+                      style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                    >
+                      Select Existing Route
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={newRouteName}
+                    onChange={(e) => setNewRouteName(e.target.value)}
+                    placeholder="e.g. Express Line"
+                    className="form-input"
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="form-group">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <label style={{ marginBottom: 0 }}>Select Route *</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingNewRoute(true)}
+                      style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                      disabled={!formData.town}
+                    >
+                      + Add New Route
+                    </button>
+                  </div>
+                  <select
+                    name="route"
+                    value={formData.route}
+                    onChange={handleChange}
+                    className="form-input"
+                    disabled={!formData.town}
+                    required
+                  >
+                    <option value="">
+                      {formData.town ? '-- Choose Route --' : 'Select a Town first'}
+                    </option>
+                    {filteredRoutes.map(r => (
+                      <option key={r._id} value={r._id}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )
+            )}
           </div>
+
+          {/* Conditional Sub-forms for Description of new Town/Route */}
+          {isAddingNewTown && (
+            <div className="form-row" style={{ marginTop: '1rem' }}>
+              <div className="form-group">
+                <label>New Route Name (For the new Town) *</label>
+                <input
+                  type="text"
+                  value={newRouteName}
+                  onChange={(e) => setNewRouteName(e.target.value)}
+                  placeholder="e.g. Corridor Express"
+                  className="form-input"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>New Route Description *</label>
+                <input
+                  type="text"
+                  value={newRouteDesc}
+                  onChange={(e) => setNewRouteDesc(e.target.value)}
+                  placeholder="e.g. Rapid transit Corridor connecting Uptown"
+                  className="form-input"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {!isAddingNewTown && isAddingNewRoute && (
+            <div className="form-group" style={{ marginTop: '1rem' }}>
+              <label>New Route Description *</label>
+              <input
+                type="text"
+                value={newRouteDesc}
+                onChange={(e) => setNewRouteDesc(e.target.value)}
+                placeholder="e.g. Connects downtown via east side transit lanes"
+                className="form-input"
+                required
+              />
+            </div>
+          )}
 
           {/* Price & Address */}
           <div className="form-row">

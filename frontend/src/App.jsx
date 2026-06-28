@@ -165,29 +165,29 @@ function App() {
     }
   };
 
+  const fetchMetadata = async () => {
+    try {
+      const [townsRes, routesRes] = await Promise.all([
+        fetch(`${API_BASE}/towns`),
+        fetch(`${API_BASE}/routes`)
+      ]);
+      
+      if (!townsRes.ok || !routesRes.ok) throw new Error('Failed to load town/route metadata');
+      
+      const townsData = await townsRes.json();
+      const routesData = await routesRes.json();
+      
+      setTowns(townsData);
+      setRoutes(routesData);
+    } catch (err) {
+      console.error(err);
+      setError('Could not connect to the backend server. Is the API running on port 5000?');
+    }
+  };
+
   // 1. Initial Load: Towns and Routes
   useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const [townsRes, routesRes] = await Promise.all([
-          fetch(`${API_BASE}/towns`),
-          fetch(`${API_BASE}/routes`)
-        ]);
-        
-        if (!townsRes.ok || !routesRes.ok) throw new Error('Failed to load initial town/route metadata');
-        
-        const townsData = await townsRes.json();
-        const routesData = await routesRes.json();
-        
-        setTowns(townsData);
-        setRoutes(routesData);
-      } catch (err) {
-        console.error(err);
-        setError('Could not connect to the backend server. Is the API running on port 5000?');
-      }
-    };
-
-    fetchInitialData();
+    fetchMetadata();
   }, []);
 
   // 2. Fetch properties whenever filters change
@@ -296,8 +296,9 @@ function App() {
       throw new Error(errData.error || 'Failed to submit property');
     }
 
-    // Success! Refresh properties
+    // Success! Refresh properties & metadata list
     fetchProperties();
+    fetchMetadata();
     setIsFormOpen(false);
 
     // Blast celebratory confetti!

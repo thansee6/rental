@@ -52,6 +52,14 @@ function App() {
   const [shareCopied, setShareCopied] = useState(false);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
 
+  // Contact Host Form States
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactSenderName, setContactSenderName] = useState('');
+  const [contactSenderEmail, setContactSenderEmail] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [messageSentSuccess, setMessageSentSuccess] = useState(false);
+  const [showContactForm, setShowContactForm] = useState(false);
+
   // UI Status States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -69,6 +77,18 @@ function App() {
       return updated;
     });
   };
+
+  // Reset/Initialize Contact Host Form states when selectedProperty changes
+  useEffect(() => {
+    if (selectedProperty) {
+      setContactMessage(`Hi ${selectedProperty.contactName || 'Host'}, I am interested in your property "${selectedProperty.title}". Is it still available?`);
+      setContactSenderName(currentUser ? currentUser.email.split('@')[0].toUpperCase() : '');
+      setContactSenderEmail(currentUser ? currentUser.email : '');
+      setMessageSentSuccess(false);
+      setIsSendingMessage(false);
+      setShowContactForm(false);
+    }
+  }, [selectedProperty, currentUser]);
 
   // Role-Based User States
   const [currentUser, setCurrentUser] = useState(() => {
@@ -863,6 +883,108 @@ function App() {
                   <a href={`mailto:${selectedProperty.contactEmail}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>
                     {selectedProperty.contactEmail}
                   </a>
+                </div>
+
+                {/* Contact Message Form */}
+                <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                  {!showContactForm ? (
+                    <button 
+                      className="btn btn-secondary" 
+                      style={{ width: '100%', justifyContent: 'center', fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}
+                      onClick={() => setShowContactForm(true)}
+                    >
+                      ✉ Send Message to Host
+                    </button>
+                  ) : messageSentSuccess ? (
+                    <div 
+                      style={{ 
+                        background: 'var(--accent-teal-bg)', 
+                        border: '1px solid var(--primary)', 
+                        borderRadius: 'var(--radius-sm)', 
+                        padding: '0.75rem', 
+                        color: 'var(--primary)', 
+                        fontSize: '0.85rem',
+                        textAlign: 'center',
+                        fontWeight: '500'
+                      }}
+                    >
+                      🎉 Message sent successfully! The host has been notified.
+                    </div>
+                  ) : (
+                    <form 
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (!contactSenderName.trim() || !contactSenderEmail.trim() || !contactMessage.trim()) return;
+                        setIsSendingMessage(true);
+                        // Simulate network call
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        setIsSendingMessage(false);
+                        setMessageSentSuccess(true);
+                        confetti({
+                          particleCount: 50,
+                          spread: 40,
+                          origin: { y: 0.8 }
+                        });
+                      }}
+                      style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+                    >
+                      <div className="form-row">
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label style={{ fontSize: '0.75rem', marginBottom: '0.25rem', display: 'block', color: 'var(--text-secondary)' }}>Your Name *</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={contactSenderName}
+                            onChange={(e) => setContactSenderName(e.target.value)}
+                            placeholder="Your Name"
+                            required
+                            style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                          />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label style={{ fontSize: '0.75rem', marginBottom: '0.25rem', display: 'block', color: 'var(--text-secondary)' }}>Your Email *</label>
+                          <input
+                            type="email"
+                            className="form-input"
+                            value={contactSenderEmail}
+                            onChange={(e) => setContactSenderEmail(e.target.value)}
+                            placeholder="Your Email"
+                            required
+                            style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '0.75rem', marginBottom: '0.25rem', display: 'block', color: 'var(--text-secondary)' }}>Your Message *</label>
+                        <textarea
+                          className="form-input"
+                          value={contactMessage}
+                          onChange={(e) => setContactMessage(e.target.value)}
+                          required
+                          style={{ minHeight: '60px', padding: '0.4rem 0.6rem', fontSize: '0.8rem', resize: 'vertical' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        <button 
+                          type="button" 
+                          className="btn btn-secondary" 
+                          onClick={() => setShowContactForm(false)}
+                          disabled={isSendingMessage}
+                          style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem', height: '28px' }}
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          type="submit" 
+                          className="btn btn-primary"
+                          disabled={isSendingMessage}
+                          style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem', height: '28px' }}
+                        >
+                          {isSendingMessage ? 'Sending...' : 'Send Message'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               </div>
 

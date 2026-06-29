@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 import { connectDB } from './config/db.js';
 import apiRoutes from './routes/api.js';
 import seedRoutes, { seedDatabase } from './routes/seed.js';
@@ -22,13 +25,31 @@ app.use(express.json());
 app.use('/api', apiRoutes);
 app.use('/api', seedRoutes);
 
-// Health check root route
-app.get('/', (req, res) => {
-  res.json({
-    status: 'healthy',
-    message: 'Rental Property Listing Platform API is running.'
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+
+// Serve frontend static build files if directory exists
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+  
+  // Wildcard client router handler
+  app.get('*', (req, res, next) => {
+    // Skip if requesting api route
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
-});
+} else {
+  // Fallback health check route for standalone backend development
+  app.get('/', (req, res) => {
+    res.json({
+      status: 'healthy',
+      message: 'Rental Property Listing Platform API is running in standalone mode.'
+    });
+  });
+}
 
 // Start Server & Connect Database
 const startServer = async () => {

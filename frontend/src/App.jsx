@@ -25,7 +25,7 @@ import confetti from 'canvas-confetti';
 import PropertyCard from './components/PropertyCard';
 import PropertyForm from './components/PropertyForm';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = import.meta.env.DEV ? 'http://localhost:5000/api' : '/api';
 
 function App() {
   // Database States

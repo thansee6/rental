@@ -13,6 +13,8 @@ const PRESET_IMAGES = [
   { name: 'Luxury Brick Building', url: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80' }
 ];
 
+const API_BASE = import.meta.env.DEV ? 'http://localhost:5000/api' : '/api';
+
 const PropertyForm = ({ towns, routes, onClose, onSubmit, currentUser }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -108,7 +110,7 @@ const PropertyForm = ({ towns, routes, onClose, onSubmit, currentUser }) => {
 
       // Handle new town creation
       if (isAddingNewTown) {
-        const tRes = await fetch('http://localhost:5000/api/towns', {
+        const tRes = await fetch(`${API_BASE}/towns`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: newTownName, description: newTownDesc })
@@ -120,7 +122,7 @@ const PropertyForm = ({ towns, routes, onClose, onSubmit, currentUser }) => {
         const createdTown = await tRes.json();
         townId = createdTown._id;
 
-        const rRes = await fetch('http://localhost:5000/api/routes', {
+        const rRes = await fetch(`${API_BASE}/routes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: newRouteName, town: townId, description: newRouteDesc })
@@ -134,7 +136,7 @@ const PropertyForm = ({ towns, routes, onClose, onSubmit, currentUser }) => {
       }
       // Handle new route to existing town creation
       else if (isAddingNewRoute) {
-        const rRes = await fetch('http://localhost:5000/api/routes', {
+        const rRes = await fetch(`${API_BASE}/routes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: newRouteName, town: townId, description: newRouteDesc })

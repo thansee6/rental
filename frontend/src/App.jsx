@@ -66,6 +66,12 @@ function App() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
 
+  // Role-Based User States
+  const [currentUser, setCurrentUser] = useState(() => {
+    const stored = localStorage.getItem('currentUser');
+    return stored ? JSON.parse(stored) : null;
+  });
+
   // Toggle Favorite Handler
   const handleToggleFavorite = (propertyId, e) => {
     if (e) e.stopPropagation();
@@ -90,11 +96,6 @@ function App() {
     }
   }, [selectedProperty, currentUser]);
 
-  // Role-Based User States
-  const [currentUser, setCurrentUser] = useState(() => {
-    const stored = localStorage.getItem('currentUser');
-    return stored ? JSON.parse(stored) : null;
-  });
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');

@@ -453,6 +453,59 @@ function App() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+
+          {/* Quick Statistics Banner */}
+          <div className="hero-stats" style={{
+            display: 'flex',
+            gap: '2rem',
+            justifyContent: 'center',
+            marginTop: '2rem',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border-color)',
+            padding: '1rem 2rem',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(8px)',
+            maxWidth: '650px',
+            marginLeft: 'auto',
+            marginRight: 'auto'
+          }}>
+            <div className="stat-item" style={{ textAlign: 'center', flex: 1 }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--primary)' }}>
+                {properties.filter(p => p.type === 'Room').length}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.25rem' }}>
+                Rooms Available
+              </div>
+            </div>
+            <div style={{ borderLeft: '1px solid var(--border-color)', height: '35px', alignSelf: 'center' }}></div>
+            <div className="stat-item" style={{ textAlign: 'center', flex: 1 }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--accent-cyan)' }}>
+                {properties.filter(p => p.type === 'Building').length}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.25rem' }}>
+                Buildings
+              </div>
+            </div>
+            <div style={{ borderLeft: '1px solid var(--border-color)', height: '35px', alignSelf: 'center' }}></div>
+            <div className="stat-item" style={{ textAlign: 'center', flex: 1 }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--accent-teal)' }}>
+                {towns.length}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.25rem' }}>
+                Towns
+              </div>
+            </div>
+            <div style={{ borderLeft: '1px solid var(--border-color)', height: '35px', alignSelf: 'center' }}></div>
+            <div className="stat-item" style={{ textAlign: 'center', flex: 1 }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--accent-purple)' }}>
+                {routes.length}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.25rem' }}>
+                Transit Routes
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Outer Grid Layout (Sidebar Filters + Listings Grid) */}

@@ -7,6 +7,40 @@ import Property from '../models/Property.js';
 
 const router = Router();
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+router.get('/debug-files', (req, res) => {
+  try {
+    const distPath = path.join(__dirname, '../../frontend/dist');
+    const exists = fs.existsSync(distPath);
+    if (!exists) {
+      return res.json({ exists: false, message: 'frontend/dist does not exist' });
+    }
+    const files = fs.readdirSync(distPath);
+    const assetsPath = path.join(distPath, 'assets');
+    const assetsExist = fs.existsSync(assetsPath);
+    const assetFiles = assetsExist ? fs.readdirSync(assetsPath) : [];
+    
+    res.json({
+      exists: true,
+      files,
+      assetsExist,
+      assetFiles,
+      nodeVersion: process.version,
+      env: process.env.NODE_ENV,
+      port: process.env.PORT,
+      dir: __dirname
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ==========================================
 // TOWN ENDPOINTS
 // ==========================================

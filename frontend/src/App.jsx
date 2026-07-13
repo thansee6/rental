@@ -60,6 +60,13 @@ function App() {
   const [messageSentSuccess, setMessageSentSuccess] = useState(false);
   const [showContactForm, setShowContactForm] = useState(false);
 
+  // Sent Messages Log States
+  const [sentMessages, setSentMessages] = useState(() => {
+    const stored = localStorage.getItem('luxeSpace_sent_messages');
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
   // UI Status States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -518,7 +525,7 @@ function App() {
               <h3 className="filter-title">
                 <Heart size={18} className="text-gradient" /> Personal Workspace
               </h3>
-              <div className="selector-list">
+              <div className="selector-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <button
                   className={`selector-item ${favoritesOnly ? 'active' : ''}`}
                   onClick={() => setFavoritesOnly(!favoritesOnly)}
@@ -529,6 +536,20 @@ function App() {
                     <span>Favorites Only</span>
                   </div>
                   <span className="badge-count">{favorites.length}</span>
+                </button>
+
+                <button
+                  className="selector-item"
+                  onClick={() => setIsHistoryOpen(true)}
+                  style={{ width: '100%' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Mail size={14} />
+                    <span>Sent Enquiries</span>
+                  </div>
+                  <span className="badge-count" style={{ background: 'var(--primary-glow)', color: 'var(--primary)' }}>
+                    {sentMessages.length}
+                  </span>
                 </button>
               </div>
             </div>
@@ -974,6 +995,24 @@ function App() {
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         setIsSendingMessage(false);
                         setMessageSentSuccess(true);
+
+                        // Save to message history logs
+                        const newMessageLog = {
+                          id: Date.now(),
+                          propertyId: selectedProperty._id,
+                          propertyTitle: selectedProperty.title,
+                          hostName: selectedProperty.contactName,
+                          senderName: contactSenderName,
+                          senderEmail: contactSenderEmail,
+                          message: contactMessage,
+                          date: new Date().toLocaleDateString()
+                        };
+                        setSentMessages(prev => {
+                          const updated = [newMessageLog, ...prev];
+                          localStorage.setItem('luxeSpace_sent_messages', JSON.stringify(updated));
+                          return updated;
+                        });
+
                         confetti({
                           particleCount: 50,
                           spread: 40,
@@ -1128,6 +1167,75 @@ function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Sent Enquiries History Modal */}
+      {isHistoryOpen && (
+        <div className="modal-overlay" onClick={() => setIsHistoryOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <button className="modal-close-btn" onClick={() => setIsHistoryOpen(false)}>
+              <X size={18} />
+            </button>
+            
+            <div className="form-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Mail className="text-gradient" /> Sent Enquiries Log
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+                Track the enquiries and messages you have sent to different listing hosts.
+              </p>
+            </div>
+            
+            <div className="form-body" style={{ overflowY: 'auto', flex: 1, paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: '200px' }}>
+              {sentMessages.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
+                  <Mail size={40} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+                  <p>You have not sent any enquiries yet.</p>
+                  <p style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>Your sent messages to hosts will appear here.</p>
+                </div>
+              ) : (
+                sentMessages.map((msg) => (
+                  <div key={msg.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1rem', position: 'relative' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                      <div style={{ fontWeight: '600', color: 'var(--primary)', fontSize: '0.95rem' }}>
+                        {msg.propertyTitle}
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '10px' }}>
+                        {msg.date}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                      To: <strong>{msg.hostName}</strong> | From: <strong>{msg.senderName} ({msg.senderEmail})</strong>
+                    </div>
+                    <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', color: '#fff', borderLeft: '3px solid var(--primary)', fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>
+                      "{msg.message}"
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {sentMessages.length > 0 ? (
+                <button 
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to clear your entire message log history?')) {
+                      setSentMessages([]);
+                      localStorage.removeItem('luxeSpace_sent_messages');
+                    }
+                  }} 
+                  className="btn btn-danger"
+                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                >
+                  Clear History
+                </button>
+              ) : <div />}
+              <button onClick={() => setIsHistoryOpen(false)} className="btn btn-secondary" style={{ padding: '0.4rem 1rem' }}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

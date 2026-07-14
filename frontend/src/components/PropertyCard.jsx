@@ -67,11 +67,18 @@ const PropertyCard = ({ property, onClick, isAdmin, onDelete, isFavorite, onTogg
       </div>
 
       <div className="card-content">
-        <div className="card-price">
-          ${price.toLocaleString()}<span>/month</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+          <div className="card-price" style={{ marginBottom: 0 }}>
+            ${price.toLocaleString()}<span>/month</span>
+          </div>
+          {property.rating && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.82rem', color: 'var(--primary)', fontWeight: '600' }}>
+              ★ {property.rating}
+            </div>
+          )}
         </div>
         
-        <h3 className="card-title" title={title}>{title}</h3>
+        <h3 className="card-title" title={title} style={{ marginTop: '0.25rem' }}>{title}</h3>
         
         <div className="card-location">
           <MapPin size={14} className="text-gradient" />

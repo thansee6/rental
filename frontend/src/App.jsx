@@ -67,6 +67,15 @@ function App() {
   });
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
+  // Reviews States
+  const [customReviews, setCustomReviews] = useState(() => {
+    const stored = localStorage.getItem('luxeSpace_reviews');
+    return stored ? JSON.parse(stored) : {};
+  });
+  const [reviewAuthor, setReviewAuthor] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+
   // UI Status States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -91,6 +100,55 @@ function App() {
     });
   };
 
+  // Review Helpers
+  const getPropertyReviews = (propertyId) => {
+    const defaultReviews = [
+      { id: 'def-1', author: 'Mark S.', rating: 5, comment: 'Exceeded expectations. Very clean, quiet, and the host was extremely cooperative!', date: '6/12/2026' },
+      { id: 'def-2', author: 'Sophia L.', rating: 4, comment: 'Great location with convenient transit options. Room was spacious.', date: '5/28/2026' }
+    ];
+    const userReviews = customReviews[propertyId] || [];
+    return [...userReviews, ...defaultReviews];
+  };
+
+  const getAverageRating = (propertyId) => {
+    const reviews = getPropertyReviews(propertyId);
+    if (reviews.length === 0) return null;
+    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+    return (sum / reviews.length).toFixed(1);
+  };
+
+  const handleAddReview = (e, propertyId) => {
+    e.preventDefault();
+    if (!reviewAuthor.trim() || !reviewComment.trim()) return;
+
+    const newReview = {
+      id: Date.now(),
+      author: reviewAuthor.trim(),
+      rating: reviewRating,
+      comment: reviewComment.trim(),
+      date: new Date().toLocaleDateString()
+    };
+
+    setCustomReviews(prev => {
+      const propertyReviews = prev[propertyId] || [];
+      const updated = {
+        ...prev,
+        [propertyId]: [newReview, ...propertyReviews]
+      };
+      localStorage.setItem('luxeSpace_reviews', JSON.stringify(updated));
+      return updated;
+    });
+
+    // Reset comment field
+    setReviewComment('');
+
+    confetti({
+      particleCount: 60,
+      spread: 45,
+      origin: { y: 0.7 }
+    });
+  };
+
   // Reset/Initialize Contact Host Form states when selectedProperty changes
   useEffect(() => {
     if (selectedProperty) {
@@ -100,6 +158,11 @@ function App() {
       setMessageSentSuccess(false);
       setIsSendingMessage(false);
       setShowContactForm(false);
+      
+      // Reset review form fields
+      setReviewAuthor(currentUser ? currentUser.email.split('@')[0].toUpperCase() : '');
+      setReviewRating(5);
+      setReviewComment('');
     }
   }, [selectedProperty, currentUser]);
 
@@ -805,17 +868,23 @@ function App() {
               </div>
             ) : (
               <div className="properties-grid">
-                {processedProperties.map(property => (
-                  <PropertyCard
-                    key={property._id}
-                    property={property}
-                    onClick={() => setSelectedProperty(property)}
-                    isAdmin={canUserDeleteProperty(property)}
-                    onDelete={(e) => handleDeleteProperty(property._id, e)}
-                    isFavorite={favorites.includes(property._id)}
-                    onToggleFavorite={handleToggleFavorite}
-                  />
-                ))}
+                {processedProperties.map(property => {
+                  const enrichedProperty = {
+                    ...property,
+                    rating: getAverageRating(property._id)
+                  };
+                  return (
+                    <PropertyCard
+                      key={property._id}
+                      property={enrichedProperty}
+                      onClick={() => setSelectedProperty(property)}
+                      isAdmin={canUserDeleteProperty(property)}
+                      onDelete={(e) => handleDeleteProperty(property._id, e)}
+                      isFavorite={favorites.includes(property._id)}
+                      onToggleFavorite={handleToggleFavorite}
+                    />
+                  );
+                })}
               </div>
             )}
           </section>
@@ -1078,6 +1147,90 @@ function App() {
                       </div>
                     </form>
                   )}
+                </div>
+              </div>
+
+              {/* Reviews Section */}
+              <div style={{ marginTop: '2.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div className="details-section-title" style={{ margin: 0 }}>
+                    Guest Reviews ({getPropertyReviews(selectedProperty._id).length})
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', fontWeight: '700', fontSize: '1.1rem' }}>
+                    ★ {getAverageRating(selectedProperty._id)} / 5.0
+                  </div>
+                </div>
+
+                {/* Review Form */}
+                <form onSubmit={(e) => handleAddReview(e, selectedProperty._id)} style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1rem', marginBottom: '1.5rem' }}>
+                  <div style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '0.75rem', color: '#fff' }}>Share Your Experience</div>
+                  
+                  <div className="form-row" style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div className="form-group" style={{ flex: 2, marginBottom: 0 }}>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>Your Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={reviewAuthor}
+                        onChange={(e) => setReviewAuthor(e.target.value)}
+                        placeholder="Guest Name"
+                        required
+                        style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    
+                    <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>Rating</label>
+                      <select
+                        className="form-input"
+                        value={reviewRating}
+                        onChange={(e) => setReviewRating(Number(e.target.value))}
+                        style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', background: 'var(--card-bg)' }}
+                      >
+                        <option value="5">5 Stars</option>
+                        <option value="4">4 Stars</option>
+                        <option value="3">3 Stars</option>
+                        <option value="2">2 Stars</option>
+                        <option value="1">1 Star</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>Review Comment</label>
+                    <textarea
+                      className="form-input"
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Write your review here..."
+                      required
+                      style={{ minHeight: '50px', padding: '0.35rem 0.5rem', fontSize: '0.8rem', resize: 'vertical' }}
+                    />
+                  </div>
+
+                  <button type="submit" className="btn btn-primary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', marginLeft: 'auto', display: 'block' }}>
+                    Submit Review
+                  </button>
+                </form>
+
+                {/* Reviews List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {getPropertyReviews(selectedProperty._id).map((rev) => (
+                    <div key={rev.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                        <div style={{ fontWeight: '600', fontSize: '0.85rem', color: '#fff' }}>{rev.author}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ color: 'var(--primary)', fontSize: '0.8rem' }}>
+                            {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{rev.date}</span>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>
+                        "{rev.comment}"
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
 

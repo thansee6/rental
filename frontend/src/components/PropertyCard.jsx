@@ -1,18 +1,19 @@
 import React from 'react';
 import { MapPin, Navigation, Compass, Layers, ArrowUpRight, Trash2, Heart } from 'lucide-react';
 
-const PropertyCard = ({ property, onClick, isAdmin, onDelete, isFavorite, onToggleFavorite }) => {
+const PropertyCard = ({ property, onClick, isAdmin, onDelete, isFavorite, onToggleFavorite, isComparing, onToggleCompare }) => {
   const {
     _id,
     title,
     type,
     price,
     address,
-    town,
-    route,
-    nearStaircase,
-    amenities,
-    imageUrl
+    townName,
+    routeName,
+    imageUrl,
+    bedrooms,
+    bathrooms,
+    staircaseCount
   } = property;
 
   return (
@@ -24,7 +25,7 @@ const PropertyCard = ({ property, onClick, isAdmin, onDelete, isFavorite, onTogg
           {type === 'Room' ? (
             <>
               <span className="badge badge-room">Room</span>
-              {nearStaircase ? (
+              {staircaseCount > 0 ? (
                 <span className="badge badge-staircase-danger" title="Located right next to the stairs (might have more foot traffic)">
                   Near Staircase ⚠
                 </span>
@@ -40,6 +41,24 @@ const PropertyCard = ({ property, onClick, isAdmin, onDelete, isFavorite, onTogg
         </div>
 
         <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+          <button 
+            className={`card-action-btn btn-compare ${isComparing ? 'active' : ''}`}
+            onClick={(e) => {
+              console.log("Compare clicked for:", _id);
+              e.stopPropagation();
+              onToggleCompare(_id, e);
+            }}
+            title={isComparing ? "Remove from Compare" : "Compare Listing"}
+            style={{
+              background: isComparing ? 'var(--accent-cyan-bg)' : 'rgba(0,0,0,0.4)',
+              color: isComparing ? 'var(--accent-cyan)' : '#fff',
+              border: isComparing ? '1px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.1)',
+              marginRight: '0.25rem'
+            }}
+          >
+            <Layers size={15} />
+          </button>
+
           <button 
             className={`card-action-btn btn-favorite ${isFavorite ? 'active' : ''}`}
             onClick={(e) => {

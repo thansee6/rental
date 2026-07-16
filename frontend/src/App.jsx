@@ -76,6 +76,10 @@ function App() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
 
+  // Compare List States
+  const [compareList, setCompareList] = useState([]);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
   // UI Status States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -97,6 +101,21 @@ function App() {
         : [...prev, propertyId];
       localStorage.setItem('luxeSpace_favorites', JSON.stringify(updated));
       return updated;
+    });
+  };
+
+  // Compare Handler
+  const handleToggleCompare = (propertyId, e) => {
+    if (e) e.stopPropagation();
+    setCompareList(prev => {
+      if (prev.includes(propertyId)) {
+        return prev.filter(id => id !== propertyId);
+      }
+      if (prev.length >= 3) {
+        alert('You can compare up to 3 listings at a time.');
+        return prev;
+      }
+      return [...prev, propertyId];
     });
   };
 
@@ -882,6 +901,8 @@ function App() {
                       onDelete={(e) => handleDeleteProperty(property._id, e)}
                       isFavorite={favorites.includes(property._id)}
                       onToggleFavorite={handleToggleFavorite}
+                      isComparing={compareList.includes(property._id)}
+                      onToggleCompare={handleToggleCompare}
                     />
                   );
                 })}
@@ -1387,6 +1408,209 @@ function App() {
               ) : <div />}
               <button onClick={() => setIsHistoryOpen(false)} className="btn btn-secondary" style={{ padding: '0.4rem 1rem' }}>
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Bottom Comparison Drawer */}
+      {compareList.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '2rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 999,
+          background: 'rgba(15, 15, 20, 0.85)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '30px',
+          padding: '0.5rem 1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1.5rem',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+          maxWidth: '90%',
+          width: 'max-content'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            <Layers size={16} className="text-gradient" />
+            <span style={{ color: '#fff', fontWeight: '600' }}>Compare List</span>
+            <span>({compareList.length}/3)</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {compareList.map(id => {
+              const prop = properties.find(p => p._id === id);
+              if (!prop) return null;
+              return (
+                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '0.2rem 0.6rem 0.2rem 0.3rem', fontSize: '0.78rem' }}>
+                  <img src={prop.imageUrl} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                  <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#fff' }}>{prop.title}</span>
+                  <button 
+                    onClick={() => setCompareList(prev => prev.filter(item => item !== id))}
+                    style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: 0, marginLeft: '0.25rem', fontSize: '0.9rem', fontWeight: 'bold' }}
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              onClick={() => setIsCompareModalOpen(true)}
+              className="btn btn-primary"
+              style={{ padding: '0.35rem 0.8rem', fontSize: '0.8rem', borderRadius: '20px' }}
+            >
+              Compare Now
+            </button>
+            <button 
+              onClick={() => setCompareList([])}
+              className="btn btn-secondary"
+              style={{ padding: '0.35rem 0.8rem', fontSize: '0.8rem', borderRadius: '20px' }}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Comparison Modal */}
+      {isCompareModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsCompareModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', width: '95%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <button className="modal-close-btn" onClick={() => setIsCompareModalOpen(false)}>
+              <X size={18} />
+            </button>
+
+            <div className="form-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Layers className="text-gradient" /> Compare Listed Spaces
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+                Compare pricing, amenities, room specifications, and transit locations side-by-side.
+              </p>
+            </div>
+
+            <div style={{ overflowX: 'auto', flex: 1, paddingBottom: '1rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '0.75rem', borderBottom: '2px solid var(--border-color)', width: '200px', color: '#fff' }}>Features</th>
+                    {compareList.map(id => {
+                      const prop = properties.find(p => p._id === id);
+                      if (!prop) return null;
+                      return (
+                        <th key={id} style={{ padding: '0.75rem', borderBottom: '2px solid var(--border-color)', textAlign: 'center', minWidth: '200px' }}>
+                          <img src={prop.imageUrl} alt="" style={{ width: '100%', height: '110px', borderRadius: 'var(--radius-sm)', objectFit: 'cover', marginBottom: '0.5rem', border: '1px solid var(--border-color)' }} />
+                          <div style={{ fontWeight: '700', color: '#fff', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{prop.title}</div>
+                          <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '10px', background: 'var(--border-color)', color: 'var(--text-secondary)' }}>
+                            {prop.type === 'room' ? 'Room' : 'Full Apartment'}
+                          </span>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', fontWeight: '600', color: '#fff' }}>Monthly Price</td>
+                    {compareList.map(id => {
+                      const prop = properties.find(p => p._id === id);
+                      return (
+                        <td key={id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center', fontSize: '1rem', fontWeight: '700', color: 'var(--primary)' }}>
+                          ${prop?.price?.toLocaleString()}/mo
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', fontWeight: '600', color: '#fff' }}>Rating</td>
+                    {compareList.map(id => {
+                      return (
+                        <td key={id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center', color: 'var(--accent-purple)', fontWeight: '600' }}>
+                          ★ {getAverageRating(id) || 'N/A'}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', fontWeight: '600', color: '#fff' }}>Location</td>
+                    {compareList.map(id => {
+                      const prop = properties.find(p => p._id === id);
+                      return (
+                        <td key={id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+                          {prop?.address}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', fontWeight: '600', color: '#fff' }}>Town & Route</td>
+                    {compareList.map(id => {
+                      const prop = properties.find(p => p._id === id);
+                      return (
+                        <td key={id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+                          <div>Town: <strong>{prop?.townName}</strong></div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Route: {prop?.routeName}</div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', fontWeight: '600', color: '#fff' }}>Stairs vs Elevator</td>
+                    {compareList.map(id => {
+                      const prop = properties.find(p => p._id === id);
+                      return (
+                        <td key={id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+                          {prop?.staircaseCount > 0 ? (
+                            <span style={{ color: 'var(--accent-rose)' }}>Near Stairs ({prop.staircaseCount} steps)</span>
+                          ) : (
+                            <span style={{ color: 'var(--primary)' }}>Quiet Area (Elevator/No steps)</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', fontWeight: '600', color: '#fff' }}>Amenities</td>
+                    {compareList.map(id => {
+                      const prop = properties.find(p => p._id === id);
+                      return (
+                        <td key={id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', justifyContent: 'center' }}>
+                            {prop?.amenities?.map((amenity, idx) => (
+                              <span key={idx} style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
+                                {amenity}
+                              </span>
+                            )) || 'None'}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', fontWeight: '600', color: '#fff' }}>Host Contact</td>
+                    {compareList.map(id => {
+                      const prop = properties.find(p => p._id === id);
+                      return (
+                        <td key={id} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+                          <div><strong>{prop?.contactName}</strong></div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{prop?.contactEmail}</div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button onClick={() => setIsCompareModalOpen(false)} className="btn btn-primary" style={{ padding: '0.4rem 1.5rem' }}>
+                Close Comparison
               </button>
             </div>
           </div>

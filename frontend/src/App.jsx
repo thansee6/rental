@@ -80,6 +80,9 @@ function App() {
   const [compareList, setCompareList] = useState([]);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
 
+  // Commute Planner States
+  const [commuteDestination, setCommuteDestination] = useState('Town Center');
+
   // UI Status States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -117,6 +120,47 @@ function App() {
       }
       return [...prev, propertyId];
     });
+  };
+
+  // Commute Planner Calculations
+  const calculateCommute = (property, destination) => {
+    const route = property.routeName || (property.route && property.route.name) || 'Transit Line';
+    const firstChar = route.charCodeAt(0) || 65;
+    
+    let baseTime = 10;
+    let baseCost = 2.50;
+    
+    switch (destination) {
+      case 'University Hub':
+        baseTime = 18;
+        baseCost = 3.00;
+        break;
+      case 'Business District':
+        baseTime = 25;
+        baseCost = 4.00;
+        break;
+      case 'International Airport':
+        baseTime = 45;
+        baseCost = 7.50;
+        break;
+      case 'Town Center':
+      default:
+        baseTime = 12;
+        baseCost = 2.00;
+        break;
+    }
+    
+    const time = Math.max(5, baseTime + (firstChar % 7) - 3);
+    const cost = Math.max(1.5, baseCost + ((firstChar % 5) * 0.5) - 1.0);
+    const stops = Math.max(1, Math.floor(time / 4));
+    
+    return {
+      time,
+      cost: cost.toFixed(2),
+      monthlyCost: (cost * 40).toFixed(0),
+      stops,
+      line: route
+    };
   };
 
   // Review Helpers
@@ -1032,6 +1076,74 @@ function App() {
                   </div>
                 </>
               )}
+
+              {/* Commute & Transit Estimator */}
+              <div className="details-section-title">Commute & Transit Estimator</div>
+              <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1.25rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#fff', fontWeight: '500' }}>Choose Destination:</span>
+                  <select 
+                    value={commuteDestination}
+                    onChange={(e) => setCommuteDestination(e.target.value)}
+                    style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.3rem 0.6rem', color: '#fff', fontSize: '0.82rem', outline: 'none' }}
+                  >
+                    <option value="Town Center">Town Center</option>
+                    <option value="University Hub">University Hub</option>
+                    <option value="Business District">Business District</option>
+                    <option value="International Airport">International Airport</option>
+                  </select>
+                </div>
+
+                {(() => {
+                  const comm = calculateCommute(selectedProperty, commuteDestination);
+                  return (
+                    <div>
+                      {/* Animated Route Line */}
+                      <div style={{ position: 'relative', height: '40px', display: 'flex', alignItems: 'center', marginBottom: '1.25rem', padding: '0 1rem' }}>
+                        <div style={{ position: 'absolute', left: '1rem', right: '1rem', height: '3px', background: 'linear-gradient(90deg, var(--primary), var(--accent-purple))', opacity: 0.4 }} />
+                        <div style={{ position: 'absolute', left: '1rem', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)', boxShadow: '0 0 10px var(--primary)' }} title="Property Start" />
+                        
+                        {/* Animated Train/Bus moving along the line */}
+                        <div 
+                          style={{ 
+                            position: 'absolute', 
+                            left: `calc(1rem + ${Math.min(90, 10 + (comm.time * 1.5))}% - 10px)`, 
+                            transition: 'left 0.8s ease-in-out',
+                            fontSize: '1rem',
+                            lineHeight: 1
+                          }}
+                        >
+                          🚆
+                        </div>
+                        
+                        <div style={{ position: 'absolute', right: '1rem', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--accent-purple)', boxShadow: '0 0 10px var(--accent-purple)' }} title={commuteDestination} />
+                        
+                        <div style={{ position: 'absolute', left: '1rem', top: '24px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Home</div>
+                        <div style={{ position: 'absolute', right: '1rem', top: '24px', fontSize: '0.7rem', color: 'var(--text-secondary)', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{commuteDestination}</div>
+                      </div>
+
+                      {/* Travel Details stats */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>⏱ Travel Time</div>
+                          <div style={{ fontSize: '1rem', fontWeight: '700', color: '#fff', marginTop: '0.2rem' }}>{comm.time} mins</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{comm.stops} transit stops</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>🎫 Commute Cost</div>
+                          <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--primary)', marginTop: '0.2rem' }}>${comm.cost}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Single-ride fare</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>🚇 Line Name</div>
+                          <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--accent-purple)', marginTop: '0.2rem', textTransform: 'uppercase' }}>{comm.line}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Est. ${comm.monthlyCost}/month</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
               
               <div className="details-section-title">Contact Property Host</div>
               <div className="details-contact-card">

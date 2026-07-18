@@ -81,6 +81,66 @@ const PropertyForm = ({ towns, routes, onClose, onSubmit, currentUser }) => {
     setCustomImage(false);
   };
 
+  const handleGenerateDescription = () => {
+    const { title, type, price, address, town, route, nearStaircase, amenities, contactName } = formData;
+    
+    if (!title.trim()) {
+      alert('Please enter a Title first.');
+      return;
+    }
+    
+    let selectedTownName = '';
+    if (isAddingNewTown) {
+      selectedTownName = newTownName;
+    } else {
+      const tObj = towns.find(t => t._id === town);
+      selectedTownName = tObj ? tObj.name : '';
+    }
+    
+    let selectedRouteName = '';
+    if (isAddingNewRoute) {
+      selectedRouteName = newRouteName;
+    } else {
+      const rObj = routes.find(r => r._id === route);
+      selectedRouteName = rObj ? rObj.name : '';
+    }
+
+    let amenitiesStr = '';
+    if (amenities.length > 0) {
+      if (amenities.length === 1) {
+        amenitiesStr = ` featuring standard amenities like ${amenities[0]}`;
+      } else {
+        const last = amenities[amenities.length - 1];
+        const rest = amenities.slice(0, -1).join(', ');
+        amenitiesStr = ` equipped with amenities including ${rest}, and ${last}`;
+      }
+    }
+
+    const typeStr = type === 'Room' ? 'single room' : 'entire apartment';
+    const staircaseStr = type === 'Room' 
+      ? (nearStaircase ? '. It is located near the building staircase for rapid access' : '. Tucked away from high-traffic stairs, it offers an exceptionally quiet environment')
+      : '';
+    const locStr = selectedTownName ? ` inside the charming community of ${selectedTownName}` : '';
+    const transitStr = selectedRouteName ? ` situated with excellent proximity to the ${selectedRouteName} transit line` : '';
+    const priceStr = price ? ` for an affordable rate of $${price}/month` : '';
+
+    const text = `Welcome to "${title}"! This premium ${typeStr} is located at ${address || '[Address]'}${locStr}${transitStr}${priceStr}.${staircaseStr}${amenitiesStr}. Managed by host ${contactName || 'us'}, it offers the perfect balance of premium comfort, high connectivity, and exceptional value. Contact us today to schedule an inspection!`;
+
+    setFormData(prev => ({ ...prev, description: '' }));
+    let i = 0;
+    const interval = setInterval(() => {
+      setFormData(prev => {
+        if (i < text.length) {
+          return { ...prev, description: text.slice(0, i + 1) };
+        } else {
+          clearInterval(interval);
+          return prev;
+        }
+      });
+      i += 3;
+    }, 15);
+  };
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -427,7 +487,27 @@ const PropertyForm = ({ towns, routes, onClose, onSubmit, currentUser }) => {
 
           {/* Description */}
           <div className="form-group">
-            <label>Detailed Description *</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label style={{ marginBottom: 0 }}>Detailed Description *</label>
+              <button
+                type="button"
+                onClick={handleGenerateDescription}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: 'var(--primary)', 
+                  fontSize: '0.75rem', 
+                  cursor: 'pointer', 
+                  textDecoration: 'underline', 
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.2rem'
+                }}
+              >
+                <Sparkles size={12} /> Auto-Generate (AI Template)
+              </button>
+            </div>
             <textarea
               name="description"
               value={formData.description}

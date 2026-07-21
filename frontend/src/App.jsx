@@ -19,7 +19,8 @@ import {
   LogIn,
   LogOut,
   ShieldAlert,
-  Heart
+  Heart,
+  Palette
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import PropertyCard from './components/PropertyCard';
@@ -82,6 +83,39 @@ function App() {
 
   // Commute Planner States
   const [commuteDestination, setCommuteDestination] = useState('Town Center');
+
+  // Theme Accent Palette States
+  const [activeTheme, setActiveTheme] = useState(() => {
+    return localStorage.getItem('luxeSpace_theme_accent') || 'cyan';
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    switch (activeTheme) {
+      case 'emerald':
+        root.style.setProperty('--primary', '#10b981');
+        root.style.setProperty('--primary-glow', 'rgba(16, 185, 129, 0.15)');
+        root.style.setProperty('--accent-purple', '#f59e0b');
+        break;
+      case 'coral':
+        root.style.setProperty('--primary', '#f43f5e');
+        root.style.setProperty('--primary-glow', 'rgba(244, 63, 94, 0.15)');
+        root.style.setProperty('--accent-purple', '#fb923c');
+        break;
+      case 'sapphire':
+        root.style.setProperty('--primary', '#3b82f6');
+        root.style.setProperty('--primary-glow', 'rgba(59, 130, 246, 0.15)');
+        root.style.setProperty('--accent-purple', '#6366f1');
+        break;
+      case 'cyan':
+      default:
+        root.style.setProperty('--primary', '#06b6d4');
+        root.style.setProperty('--primary-glow', 'rgba(6, 182, 212, 0.15)');
+        root.style.setProperty('--accent-purple', '#a855f7');
+        break;
+    }
+    localStorage.setItem('luxeSpace_theme_accent', activeTheme);
+  }, [activeTheme]);
 
   // UI Status States
   const [loading, setLoading] = useState(true);
@@ -517,6 +551,34 @@ function App() {
           </a>
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            {/* Theme Accent Palette Picker */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.5rem' }}>
+              <Palette size={14} style={{ color: 'var(--text-secondary)', marginRight: '0.2rem' }} title="Change Luxury Accent Palette" />
+              {[
+                { id: 'cyan', color: '#06b6d4', label: 'Cyan' },
+                { id: 'emerald', color: '#10b981', label: 'Emerald' },
+                { id: 'coral', color: '#f43f5e', label: 'Coral' },
+                { id: 'sapphire', color: '#3b82f6', label: 'Sapphire' }
+              ].map((swatch) => (
+                <button
+                  key={swatch.id}
+                  onClick={() => setActiveTheme(swatch.id)}
+                  title={`Switch theme accent to ${swatch.label}`}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '50%',
+                    background: swatch.color,
+                    border: activeTheme === swatch.id ? '2px solid #fff' : '1px solid rgba(255,255,255,0.2)',
+                    boxShadow: activeTheme === swatch.id ? `0 0 8px ${swatch.color}` : 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    transition: 'all 0.2s ease'
+                  }}
+                />
+              ))}
+            </div>
+
             {currentUser && (
               <span 
                 className="badge" 

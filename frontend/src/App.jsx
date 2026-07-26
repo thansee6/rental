@@ -89,6 +89,9 @@ function App() {
     return localStorage.getItem('luxeSpace_theme_accent') || 'cyan';
   });
 
+  // Transit Map Modal States
+  const [isMapOpen, setIsMapOpen] = useState(false);
+
   useEffect(() => {
     const root = document.documentElement;
     switch (activeTheme) {
@@ -602,6 +605,10 @@ function App() {
                 {currentUser.role === 'admin' ? 'Admin' : 'Host'}: {currentUser.email}
               </span>
             )}
+            <button className="btn btn-secondary" onClick={() => setIsMapOpen(true)} title="View Transit Hub Network Map">
+              <Compass size={16} />
+              Transit Map
+            </button>
             <button className="btn btn-secondary" onClick={handleSeedDatabase} title="Reset DB values back to defaults">
               <RotateCcw size={16} />
               Reset DB
@@ -1785,6 +1792,89 @@ function App() {
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <button onClick={() => setIsCompareModalOpen(false)} className="btn btn-primary" style={{ padding: '0.4rem 1.5rem' }}>
                 Close Comparison
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Transit Network Diagram Modal */}
+      {isMapOpen && (
+        <div className="modal-overlay" onClick={() => setIsMapOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px', display: 'flex', flexDirection: 'column' }}>
+            <button className="modal-close-btn" onClick={() => setIsMapOpen(false)}>
+              <X size={18} />
+            </button>
+            
+            <div className="form-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Compass className="text-gradient" /> LuxeSpace Transit Hub Network
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+                Interactive schematic routing diagram of Towns and connecting Route lines.
+              </p>
+            </div>
+            
+            <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+              <svg width="100%" height="320" viewBox="0 0 600 320" style={{ maxWidth: '100%' }}>
+                <defs>
+                  <filter id="glow-primary" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="4" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                </defs>
+
+                {/* Connection lines (Routes) */}
+                <line x1="120" y1="160" x2="300" y2="160" stroke="#10b981" strokeWidth="4" strokeLinecap="round" filter="url(#glow-primary)" />
+                <text x="210" y="145" fill="#10b981" fontSize="11" fontWeight="bold" textAnchor="middle">Route Alpha (8 mins)</text>
+                
+                <line x1="480" y1="80" x2="300" y2="160" stroke="#a855f7" strokeWidth="4" strokeLinecap="round" filter="url(#glow-primary)" />
+                <text x="400" y="110" fill="#a855f7" fontSize="11" fontWeight="bold" textAnchor="middle" transform="rotate(-24, 400, 110)">Route Beta (12 mins)</text>
+                
+                <line x1="420" y1="260" x2="300" y2="160" stroke="#fb923c" strokeWidth="4" strokeLinecap="round" filter="url(#glow-primary)" />
+                <text x="350" y="225" fill="#fb923c" fontSize="11" fontWeight="bold" textAnchor="middle" transform="rotate(40, 350, 225)">Express Line (6 mins)</text>
+                
+                <path d="M 120 160 Q 300 30 480 80" fill="none" stroke="#06b6d4" strokeWidth="3" strokeDasharray="6,4" strokeLinecap="round" />
+                <text x="300" y="70" fill="#06b6d4" fontSize="10" fontWeight="bold" textAnchor="middle">Coast Link (15 mins)</text>
+
+                {/* Town Nodes */}
+                <g style={{ cursor: 'pointer' }} onClick={() => { setSelectedTown(towns.find(t => t.name.toLowerCase().includes('west'))?._id || ''); setSelectedRoute(''); setIsMapOpen(false); }}>
+                  <circle cx="120" cy="160" r="28" fill="var(--card-bg)" stroke="var(--primary)" strokeWidth="3" />
+                  <circle cx="120" cy="160" r="6" fill="#fff" />
+                  <text x="120" y="205" fill="#fff" fontSize="12" fontWeight="700" textAnchor="middle">West End</text>
+                  <text x="120" y="220" fill="var(--text-secondary)" fontSize="9" textAnchor="middle">Suburban Residential</text>
+                </g>
+
+                <g style={{ cursor: 'pointer' }} onClick={() => { setSelectedTown(towns.find(t => t.name.toLowerCase().includes('up'))?._id || ''); setSelectedRoute(''); setIsMapOpen(false); }}>
+                  <circle cx="480" cy="80" r="28" fill="var(--card-bg)" stroke="var(--primary)" strokeWidth="3" />
+                  <circle cx="480" cy="80" r="6" fill="#fff" />
+                  <text x="480" y="125" fill="#fff" fontSize="12" fontWeight="700" textAnchor="middle">Uptown</text>
+                  <text x="480" y="140" fill="var(--text-secondary)" fontSize="9" textAnchor="middle">Premium Hillside</text>
+                </g>
+
+                <g style={{ cursor: 'pointer' }} onClick={() => { setSelectedTown(towns.find(t => t.name.toLowerCase().includes('down'))?._id || ''); setSelectedRoute(''); setIsMapOpen(false); }}>
+                  <circle cx="300" cy="160" r="34" fill="var(--card-bg)" stroke="var(--accent-purple)" strokeWidth="4" filter="drop-shadow(0 0 8px var(--accent-purple))" />
+                  <circle cx="300" cy="160" r="8" fill="#fff" />
+                  <text x="300" y="210" fill="#fff" fontSize="13" fontWeight="800" textAnchor="middle">Downtown Hub</text>
+                  <text x="300" y="225" fill="var(--primary)" fontSize="10" fontWeight="bold" textAnchor="middle">CENTRAL TERMINAL</text>
+                </g>
+
+                <g style={{ cursor: 'pointer' }} onClick={() => { setSelectedTown(towns.find(t => t.name.toLowerCase().includes('transit'))?._id || ''); setSelectedRoute(''); setIsMapOpen(false); }}>
+                  <circle cx="420" cy="260" r="28" fill="var(--card-bg)" stroke="var(--primary)" strokeWidth="3" />
+                  <circle cx="420" cy="260" r="6" fill="#fff" />
+                  <text x="420" y="305" fill="#fff" fontSize="12" fontWeight="700" textAnchor="middle">Transit Town</text>
+                  <text x="420" y="320" fill="var(--text-secondary)" fontSize="9" textAnchor="middle">Commercial Center</text>
+                </g>
+              </svg>
+            </div>
+            
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.75rem', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+              💡 <strong>Tip</strong>: Click on any of the Town nodes in the transit schema to instantly apply that Town filter to your properties list grid!
+            </div>
+            
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setIsMapOpen(false)} className="btn btn-primary" style={{ padding: '0.4rem 1.5rem' }}>
+                Close Map
               </button>
             </div>
           </div>
